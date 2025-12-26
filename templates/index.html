@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Information Form</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .form-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #4a4a4a;
+            font-size: 2em;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+            transition: color 0.3s;
+        }
+        label:hover {
+            color: #667eea;
+        }
+        input, select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+        input:focus, select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            background: #fff;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .radio-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 8px;
+            accent-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .row {
+            display: flex;
+            gap: 20px;
+        }
+        .row .form-group {
+            flex: 1;
+        }
+        @media (max-width: 600px) {
+            .row {
+                flex-direction: column;
+            }
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .churn-yes {
+            background-color: #ffcccc;
+            color: #cc0000;
+        }
+        .churn-no {
+            background-color: #ccffcc;
+            color: #006600;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('customerForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                const data = {};
+                // Collect form data
+                for (let [key, value] of formData.entries()) {
+                    data[key] = value; // No need for array handling here
+                }
+                // Convert numeric fields
+                data.SeniorCitizen = parseInt(data.SeniorCitizen);
+                data.tenure = parseInt(data.tenure);
+                data.MonthlyCharges = parseFloat(data.MonthlyCharges);
+                data.TotalCharges = parseFloat(data.TotalCharges);
+                console.log(data);
+                fetch('/predict', { // Use relative URL
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    const resultDiv = document.getElementById('result');
+                    if (result.error) {
+                        resultDiv.innerHTML = `<p style="color: red;">Error: ${result.error}</p>`;
+                        resultDiv.className = '';
+                    } else {
+                        console.log(result)
+                        const churn = result.churn_prediction == 1 ? 'Yes' : 'No';
+                        resultDiv.innerHTML = `<p>Predicted Churn: ${churn}</p>`;
+                        if(churn === 'Yes') {
+                            resultDiv.innerHTML = 'Customer is likely to Churn';
+                            resultDiv.className = 'churn-yes';
+                        } else {
+                            resultDiv.innerHTML = 'Customer is not likely  to Churn';
+                            resultDiv.className = 'churn-no';
+                        }
+
+                    }
+                    resultDiv.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.innerHTML = '<p style="color: red;">An error occurred. Please try again.</p>';
+                    resultDiv.className = '';
+                    resultDiv.style.display = 'block';
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Customer Churn Prediction</h1>
+        <form id="customerForm">
+            <div class="row">
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="Female" selected>Female</option>
+                        <option value="Male">Male</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="SeniorCitizen">Senior Citizen</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="SeniorCitizen" value="1"> Yes</label>
+                        <label><input type="radio" name="SeniorCitizen" value="0" checked> No</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="Partner">Partner</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="Partner" value="Yes" checked> Yes</label>
+                        <label><input type="radio" name="Partner" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="Dependents">Dependents</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="Dependents" value="Yes"> Yes</label>
+                        <label><input type="radio" name="Dependents" value="No" checked> No</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="tenure">Tenure (months)</label>
+                    <input type="number" id="tenure" name="tenure" value="30" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="PhoneService">Phone Service</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="PhoneService" value="Yes" checked> Yes</label>
+                        <label><input type="radio" name="PhoneService" value="No"> No</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="MultipleLines">Multiple Lines</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="MultipleLines" value="Yes"> Yes</label>
+                        <label><input type="radio" name="MultipleLines" value="No" checked> No</label>
+                        <label><input type="radio" name="MultipleLines" value="No phone service"> No phone service</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="InternetService">Internet Service</label>
+                    <select id="InternetService" name="InternetService">
+                        <option value="DSL">DSL</option>
+                        <option value="Fiber optic" selected>Fiber optic</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="OnlineSecurity">Online Security</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="OnlineSecurity" value="Yes"> Yes</label>
+                        <label><input type="radio" name="OnlineSecurity" value="No" checked> No</label>
+                        <label><input type="radio" name="OnlineSecurity" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="OnlineBackup">Online Backup</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="OnlineBackup" value="Yes" checked> Yes</label>
+                        <label><input type="radio" name="OnlineBackup" value="No"> No</label>
+                        <label><input type="radio" name="OnlineBackup" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="DeviceProtection">Device Protection</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="DeviceProtection" value="Yes"> Yes</label>
+                        <label><input type="radio" name="DeviceProtection" value="No" checked> No</label>
+                        <label><input type="radio" name="DeviceProtection" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="TechSupport">Tech Support</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="TechSupport" value="Yes"> Yes</label>
+                        <label><input type="radio" name="TechSupport" value="No" checked> No</label>
+                        <label><input type="radio" name="TechSupport" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="StreamingTV">Streaming TV</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="StreamingTV" value="Yes" checked> Yes</label>
+                        <label><input type="radio" name="StreamingTV" value="No"> No</label>
+                        <label><input type="radio" name="StreamingTV" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="StreamingMovies">Streaming Movies</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="StreamingMovies" value="Yes"> Yes</label>
+                        <label><input type="radio" name="StreamingMovies" value="No" checked> No</label>
+                        <label><input type="radio" name="StreamingMovies" value="No internet service"> No internet service</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="Contract">Contract</label>
+                    <select id="Contract" name="Contract">
+                        <option value="Month-to-month">Month-to-month</option>
+                        <option value="One year">One year</option>
+                        <option value="Two year">Two year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="PaperlessBilling">Paperless Billing</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="PaperlessBilling" value="Yes" checked> Yes</label>
+                        <label><input type="radio" name="PaperlessBilling" value="No"> No</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="PaymentMethod">Payment Method</label>
+                    <select id="PaymentMethod" name="PaymentMethod">
+                        <option value="Electronic check">Electronic check</option>
+                        <option value="Mailed check">Mailed check</option>
+                        <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                        <option value="Credit card (automatic)" selected>Credit card (automatic)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="MonthlyCharges">Monthly Charges ($)</label>
+                    <input type="number" id="MonthlyCharges" name="MonthlyCharges" value="70.35" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="TotalCharges">Total Charges ($)</label>
+                <input type="number" id="TotalCharges" name="TotalCharges" value="800.0" step="0.01" min="0">
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+        <div id="result"></div>
+    </div>
+</body>
+</html>
